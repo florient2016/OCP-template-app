@@ -1,0 +1,134 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: app-html-template
+  annotations:
+    description: "Template to deploy a customizable index.html file served by Nginx on OpenShift"
+labels:
+  app: ${APP_NAME}
+objects:
+  # ConfigMap to store index.html
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ${APP_NAME}-html-content
+      namespace: ${NAMESPACE}
+    data:
+      index.html: ${HTML_CONTENT}
+
+  # Deployment for Nginx
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ${APP_NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      replicas: ${REPLICA_COUNT}
+      selector:
+        matchLabels:
+          app: ${APP_NAME}
+      template:
+        metadata:
+          labels:
+            app: ${APP_NAME}
+        spec:
+          containers:
+            - name: nginx
+              image: ${NGINX_IMAGE}
+              ports:
+                - containerPort: ${CONTAINER_PORT}
+              resources:
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+              volumeMounts:
+                - name: html-content
+                  mountPath: /usr/share/nginx/html/index.html
+                  subPath: index.html
+          volumes:
+            - name: html-content
+              configMap:
+                name: ${APP_NAME}-html-content
+                items:
+                  - key: index.html
+                    path: index.html
+
+  # Service to expose Nginx
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${APP_NAME}-service
+      namespace: ${NAMESPACE}
+    spec:
+      selector:
+        app: ${APP_NAME}
+      ports:
+        - protocol: TCP
+          port: ${SERVICE_PORT}
+          targetPort: ${CONTAINER_PORT}
+      type: ClusterIP
+
+  # Route for external access
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      name: ${APP_NAME}-route
+      namespace: ${NAMESPACE}
+    spec:
+      to:
+        kind: Service
+        name: ${APP_NAME}-service
+      port:
+        targetPort: ${CONTAINER_PORT}
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+parameters:
+  - name: APP_NAME
+    description: "Name of the application"
+    value: "nginx-html"
+    required: true
+  - name: REPLICA_COUNT
+    description: "Number of pod replicas"
+    value: "1"
+    required: true
+  - name: NAMESPACE
+    description: "Namespace (project) to deploy the application"
+    value: "dev"
+  - name: NGINX_IMAGE
+    description: "Nginx container image to use"
+    value: "nginx:latest"
+  - name: CPU_LIMIT
+    description: "CPU limit for the container (e.g., 500m)"
+    value: "500m"
+  - name: MEMORY_LIMIT
+    description: "Memory limit for the container (e.g., 512Mi)"
+    value: "512Mi"
+  - name: CPU_REQUEST
+    description: "CPU request for the container (e.g., 200m)"
+    value: "200m"
+  - name: MEMORY_REQUEST
+    description: "Memory request for the container (e.g., 256Mi)"
+    value: "256Mi"
+  - name: CONTAINER_PORT
+    description: "Port the Nginx container listens on"
+    value: "80"
+  - name: SERVICE_PORT
+    description: "Port exposed by the Service"
+    value: "80"
+  - name: HTML_CONTENT
+    description: "Content of index.html file"
+    value: |
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Welcome to OpenShift Template application</title>
+      </head>
+      <body>
+        <h1>Hello, OpenShift learners!</h1>
+        <p>This is a simple webpage served by Nginx on OpenShift.</p>
+      </body>
+      </html>
