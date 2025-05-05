@@ -75,6 +75,12 @@ objects:
                 requests:
                   cpu: ${CPU_REQUEST}
                   memory: ${MEMORY_REQUEST}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                runAsNonRoot: true
               volumeMounts:
                 - name: html-content
                   mountPath: /usr/share/nginx/html/index.html
