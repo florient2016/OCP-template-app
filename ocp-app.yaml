@@ -1,7 +1,7 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: app-html-template
+  name: ocp-template
   annotations:
     description: "Template to deploy a customizable index.html file served by Nginx on OpenShift"
 labels:
@@ -11,7 +11,7 @@ objects:
   - apiVersion: v1
     kind: ConfigMap
     metadata:
-      name: ${APP_NAME}-html-content
+      name: ${APP_NAME}-content
       namespace: ${NAMESPACE}
     data:
       index.html: ${HTML_CONTENT}
@@ -23,7 +23,7 @@ objects:
       name: ${APP_NAME}
       namespace: ${NAMESPACE}
     spec:
-      replicas: ${REPLICA_COUNT}
+      replicas: ${{REPLICA_COUNT}}
       selector:
         matchLabels:
           app: ${APP_NAME}
@@ -36,7 +36,7 @@ objects:
             - name: nginx
               image: ${NGINX_IMAGE}
               ports:
-                - containerPort: ${CONTAINER_PORT}
+                - containerPort: ${{CONTAINER_PORT}}
               resources:
                 limits:
                   cpu: ${CPU_LIMIT}
@@ -67,8 +67,8 @@ objects:
         app: ${APP_NAME}
       ports:
         - protocol: TCP
-          port: ${SERVICE_PORT}
-          targetPort: ${CONTAINER_PORT}
+          port: ${{SERVICE_PORT}}
+          targetPort: ${{CONTAINER_PORT}}
       type: ClusterIP
 
   # Route for external access
@@ -82,7 +82,7 @@ objects:
         kind: Service
         name: ${APP_NAME}-service
       port:
-        targetPort: ${CONTAINER_PORT}
+        targetPort: ${{CONTAINER_PORT}}
       tls:
         termination: edge
         insecureEdgeTerminationPolicy: Redirect
