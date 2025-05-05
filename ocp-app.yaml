@@ -15,6 +15,37 @@ objects:
       namespace: ${NAMESPACE}
     data:
       index.html: ${HTML_CONTENT}
+  
+  # configMap for Nginx configuration
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: nginx-config
+      namespace: ${NAMESPACE}
+    data:
+      nginx.conf: |
+        user nginx;
+        worker_processes auto;
+        error_log /dev/stderr;
+        pid /tmp/nginx.pid;
+        events {
+            worker_connections 1024;
+        }
+        http {
+            include /etc/nginx/mime.types;
+            default_type application/octet-stream;
+            access_log /dev/stdout;
+            sendfile on;
+            keepalive_timeout 65;
+            server {
+                listen 80;
+                server_name localhost;
+                root /usr/share/nginx/html;
+                location / {
+                    try_files $uri $uri/ /index.html;
+                }
+            }
+        }
 
   # Deployment for Nginx
   - apiVersion: apps/v1
@@ -48,6 +79,9 @@ objects:
                 - name: html-content
                   mountPath: /usr/share/nginx/html/index.html
                   subPath: index.html
+                - name: nginx-config
+                  mountPath: /etc/nginx/nginx.conf
+                  subPath: nginx.conf
           volumes:
             - name: html-content
               configMap:
@@ -55,6 +89,12 @@ objects:
                 items:
                   - key: index.html
                     path: index.html
+            - name: nginx-config
+              configMap:
+                name: nginx-config
+                items:
+                  - key: nginx.conf
+                    path: nginx.conf
 
   # Service to expose Nginx
   - apiVersion: v1
