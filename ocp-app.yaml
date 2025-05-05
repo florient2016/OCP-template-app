@@ -51,7 +51,7 @@ objects:
           volumes:
             - name: html-content
               configMap:
-                name: ${APP_NAME}-html-content
+                name: ${APP_NAME}-content
                 items:
                   - key: index.html
                     path: index.html
